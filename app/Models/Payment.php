@@ -13,12 +13,18 @@ class Payment extends Model
     protected $fillable = [
         'user_id',
         'amount',
-        'type', // 'deposit', 'booking_payment'
-        'payment_method', // 'card', 'cash', 'online'
-        'status', // 'success', 'failed'
+        'type',
+        'payment_method',
+        'status',
     ];
 
-    // Платеж принадлежит пользователю
+    protected function casts(): array
+    {
+        return [
+            'amount' => 'decimal:2',
+        ];
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

@@ -7,16 +7,17 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
         'name',
         'email',
         'password',
-        'role', // 'admin', 'client'
+        'role',
         'phone',
     ];
 
@@ -25,19 +26,24 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    // Пользователь имеет один аккаунт/баланс
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
+    }
+
     public function account(): HasOne
     {
         return $this->hasOne(Account::class);
     }
 
-    // Пользователь имеет много бронирований
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
     }
 
-    // Пользователь совершает много платежей
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);

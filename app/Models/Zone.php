@@ -11,12 +11,26 @@ class Zone extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', // 'Standard', 'VIP', 'BootCamp'
+        'name',
         'hourly_rate',
+        'price_1_hour',
+        'price_3_hours',
+        'price_5_hours',
+        'price_night',
         'description',
     ];
 
-    // В игровой зоне находится несколько компьютеров
+    protected function casts(): array
+    {
+        return [
+            'hourly_rate' => 'decimal:2',
+            'price_1_hour' => 'decimal:2',
+            'price_3_hours' => 'decimal:2',
+            'price_5_hours' => 'decimal:2',
+            'price_night' => 'decimal:2',
+        ];
+    }
+
     public function computers(): HasMany
     {
         return $this->hasMany(Computer::class);

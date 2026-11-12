@@ -13,11 +13,17 @@ class Account extends Model
     protected $fillable = [
         'user_id',
         'balance',
-        'tier', // 'standard', 'vip'
-        'status', // 'active', 'blocked'
+        'tier',
+        'status',
     ];
 
-    // Аккаунт принадлежит пользователю
+    protected function casts(): array
+    {
+        return [
+            'balance' => 'decimal:2',
+        ];
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

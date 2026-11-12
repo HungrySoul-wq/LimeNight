@@ -17,9 +17,15 @@ class Game extends Model
         'icon_url',
     ];
 
-    // Игра установлена на многих ПК (связь "многие-ко-многим")
+    protected function casts(): array
+    {
+        return [
+            'min_age_rating' => 'integer',
+        ];
+    }
+
     public function computers(): BelongsToMany
     {
-        return $this->belongsToMany(Computer::class);
+        return $this->belongsToMany(Computer::class)->withTimestamps();
     }
 }

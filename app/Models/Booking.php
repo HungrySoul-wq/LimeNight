@@ -16,16 +16,23 @@ class Booking extends Model
         'start_time',
         'end_time',
         'total_price',
-        'status', // 'pending', 'active', 'completed', 'cancelled'
+        'status',
     ];
 
-    // Бронирование создано конкретным пользователем
+    protected function casts(): array
+    {
+        return [
+            'start_time' => 'datetime',
+            'end_time' => 'datetime',
+            'total_price' => 'decimal:2',
+        ];
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    // Бронирование оформлено на конкретный ПК
     public function computer(): BelongsTo
     {
         return $this->belongsTo(Computer::class);

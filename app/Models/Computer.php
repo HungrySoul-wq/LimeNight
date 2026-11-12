@@ -16,25 +16,30 @@ class Computer extends Model
         'zone_id',
         'pc_number',
         'ip_address',
-        'status', // 'available', 'occupied', 'maintenance'
+        'status',
         'specs',
     ];
 
-    // Компьютер принадлежит определенной зоне
+    protected function casts(): array
+    {
+        return [
+            'pc_number' => 'integer',
+            'specs' => 'array',
+        ];
+    }
+
     public function zone(): BelongsTo
     {
         return $this->belongsTo(Zone::class);
     }
 
-    // У ПК может быть много бронирований
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
     }
 
-    // На ПК установлено много игр (связь "многие-ко-многим")
     public function games(): BelongsToMany
     {
-        return $this->belongsToMany(Game::class);
+        return $this->belongsToMany(Game::class)->withTimestamps();
     }
 }
