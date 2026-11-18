@@ -30,12 +30,7 @@ class AuthController extends Controller
                 'phone' => $validated['phone'] ?? null,
             ]);
 
-            Account::create([
-                'user_id' => $user->id,
-                'balance' => 0.00,
-                'tier' => 'standard',
-                'status' => 'active',
-            ]);
+            $this->ensureAccount($user);
 
             return $user;
         }, 3);
@@ -59,11 +54,13 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Неверный логин или пароль.'],
             ]);
         }
+
+        $this->ensureAccount($user);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -86,8 +83,28 @@ class AuthController extends Controller
 
     public function user(Request $request)
     {
+        $user = $request->user();
+
+        $this->ensureAccount($user);
+
         return response()->json([
-            'user' => $request->user()->load('account'),
+            'user' => $user->load('account'),
         ]);
+    }
+
+    /**
+     * Создаёт игровой счёт, если его ещё нет.
+     * Существующий баланс не изменяется.
+     */
+    private function ensureAccount(User $user): Account
+    {
+        return Account::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'balance' => 0.00,
+                'tier' => 'standard',
+                'status' => 'active',
+            ]
+        );
     }
 }

@@ -13,9 +13,25 @@ class ComputerResource extends JsonResource
             'id' => $this->id,
             'pc_number' => $this->pc_number,
             'ip_address' => $this->ip_address,
-            'status' => $this->status, // available, occupied, maintenance
+            'status' => $this->status,
             'specs' => $this->specs,
+
             'zone' => new ZoneResource($this->whenLoaded('zone')),
+
+            'room' => $this->whenLoaded('room', function () {
+                return [
+                    'id' => $this->room?->id,
+                    'name' => $this->room?->name,
+                    'type' => $this->room?->type,
+                    'capacity' => $this->room?->capacity,
+                    'is_active' => $this->room?->is_active,
+                ];
+            }),
+
+            'bookings' => BookingResource::collection(
+                $this->whenLoaded('bookings')
+            ),
+
             'games' => GameResource::collection($this->whenLoaded('games')),
         ];
     }

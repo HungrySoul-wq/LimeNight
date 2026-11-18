@@ -162,4 +162,8 @@ Route::middleware(['auth', 'admin'])
         // Статистика
         Route::get('/statistics', [AdminStatisticsController::class, 'index'])
             ->name('statistics.index');
-    });
+});
+        // Vue SPA
+        Route::view('/app/{any?}', 'vue')
+            ->where('any', '.*')
+            ->name('vue.app');

@@ -9,18 +9,21 @@ use App\Models\Booking;
 use App\Services\BookingService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Validation\Rule;
 
 class BookingController extends Controller
 {
     public function index(Request $request): AnonymousResourceCollection
     {
-        $bookings = Booking::query()
-            ->where('user_id', $request->user()->id)
-            ->with(['computer.zone', 'user'])
-            ->latest()
-            ->get();
+        $query = Booking::query()
+            ->with(['computer.zone', 'computer.room', 'room.zone', 'user'])
+            ->latest();
 
-        return BookingResource::collection($bookings);
+        if (!in_array($request->user()->role, ['admin', 'owner'])) {
+            $query->where('user_id', $request->user()->id);
+        }
+
+        return BookingResource::collection($query->get());
     }
 
     public function store(
@@ -33,21 +36,68 @@ class BookingController extends Controller
         );
 
         return new BookingResource(
-            $booking->load(['computer.zone', 'user'])
+            $booking->load([
+                'computer.zone',
+                'computer.room',
+                'room.zone',
+                'user',
+            ])
         );
     }
 
     public function show(Request $request, Booking $booking): BookingResource
     {
         abort_unless(
-            $booking->user_id === $request->user()->id,
+            in_array($request->user()->role, ['admin', 'owner'])
+                || $booking->user_id === $request->user()->id,
             403,
             'Нет доступа к этому бронированию.'
         );
 
         return new BookingResource(
-            $booking->load(['computer.zone', 'user'])
+            $booking->load([
+                'computer.zone',
+                'computer.room',
+                'room.zone',
+                'user',
+            ])
         );
+    }
+
+    public function update(Request $request, Booking $booking)
+    {
+        abort_unless(
+            in_array($request->user()->role, ['admin', 'owner']),
+            403,
+            'Недостаточно прав.'
+        );
+
+        $validated = $request->validate([
+            'status' => [
+                'required',
+                Rule::in([
+                    'pending',
+                    'confirmed',
+                    'active',
+                    'completed',
+                    'cancelled',
+                ]),
+            ],
+        ]);
+
+        $booking->update($validated);
+
+        return response()->json([
+            'message' => 'Статус бронирования обновлён.',
+            'data' => new BookingResource(
+                $booking->fresh()->load([
+                    'computer.zone',
+                    'computer.room',
+                    'room.zone',
+                    'user',
+                ])
+            ),
+        ]);
     }
 
     public function destroy(
@@ -64,7 +114,12 @@ class BookingController extends Controller
             'message' => 'Бронирование отменено.',
             'refund_amount' => $booking->getAttribute('refund_amount'),
             'booking' => new BookingResource(
-                $booking->load(['computer.zone', 'user'])
+                $booking->load([
+                    'computer.zone',
+                    'computer.room',
+                    'room.zone',
+                    'user',
+                ])
             ),
         ]);
     }

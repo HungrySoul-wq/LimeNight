@@ -29,7 +29,23 @@ class PaymentController extends Controller
             $user = $request->user();
             $data = $request->validated();
 
-            $account = Account::where('user_id', $user->id)
+            // Создаём игровой счёт, если его ещё нет.
+            // Блокируем пользователя, чтобы избежать одновременного создания счёта.
+            $user->newQuery()
+                ->whereKey($user->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            Account::firstOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'balance' => 0,
+                    'status' => 'active',
+                ]
+            );
+
+            $account = Account::query()
+                ->where('user_id', $user->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
@@ -39,7 +55,13 @@ class PaymentController extends Controller
                 'Игровой счёт заблокирован.'
             );
 
-            $amount = (float) $data['amount'];
+            $amount = round((float) $data['amount'], 2);
+
+            abort_if(
+                $amount <= 0,
+                422,
+                'Сумма пополнения должна быть больше нуля.'
+            );
 
             $account->increment('balance', $amount);
 
