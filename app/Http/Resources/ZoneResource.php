@@ -13,6 +13,12 @@ class ZoneResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'hourly_rate' => $this->hourly_rate,
+            'prices' => [
+                '1_hour' => $this->price_1_hour,
+                '3_hours' => $this->price_3_hours,
+                '5_hours' => $this->price_5_hours,
+                'night' => $this->price_night,
+            ],
             'description' => $this->description,
         ];
     }

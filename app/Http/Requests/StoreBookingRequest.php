@@ -14,9 +14,9 @@ class StoreBookingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'computer_id' => 'required|exists:computers,id',
-            'start_time' => 'required|date|after_or_equal:now',
-            'end_time' => 'required|date|after:start_time',
+            'computer_id' => ['required', 'integer', 'exists:computers,id'],
+            'start_time' => ['required', 'date', 'after_or_equal:now'],
+            'package' => ['required', 'in:1_hour,3_hours,5_hours,night'],
         ];
     }
 }

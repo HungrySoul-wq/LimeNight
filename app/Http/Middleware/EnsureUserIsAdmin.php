@@ -11,15 +11,23 @@ class EnsureUserIsAdmin
     public function handle(Request $request, Closure $next): Response
     {
         if (! $request->user()) {
-            return response()->json([
-                'message' => 'Необходима авторизация.',
-            ], 401);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Необходима авторизация.',
+                ], 401);
+            }
+
+            return redirect()->route('login');
         }
 
-        if ($request->user()->role !== 'admin') {
-            return response()->json([
-                'message' => 'Доступ запрещен.',
-            ], 403);
+        if (! in_array($request->user()->role, ['admin', 'owner'], true)) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Доступ запрещен.',
+                ], 403);
+            }
+
+            abort(403, 'У вас нет доступа к административной панели.');
         }
 
         return $next($request);

@@ -10,6 +10,7 @@ class Zone extends Model
 {
     use HasFactory;
 
+    // Поля зоны и её тарифы.
     protected $fillable = [
         'name',
         'hourly_rate',
@@ -20,6 +21,7 @@ class Zone extends Model
         'description',
     ];
 
+    // Денежные значения храним с двумя знаками после запятой.
     protected function casts(): array
     {
         return [
@@ -31,6 +33,13 @@ class Zone extends Model
         ];
     }
 
+    // В зоне находятся комнаты.
+    public function rooms(): HasMany
+    {
+        return $this->hasMany(Room::class);
+    }
+
+    // В зоне находятся компьютеры.
     public function computers(): HasMany
     {
         return $this->hasMany(Computer::class);

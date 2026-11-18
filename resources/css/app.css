@@ -1,9 +1,146 @@
 @import 'tailwindcss';
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
+/* =====================================================
+   LIMENIGHT — ГЛОБАЛЬНЫЕ ЦВЕТА И НАСТРОЙКИ
+   Основная палитра: чёрный, лайм, аква и белый
+===================================================== */
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --color-night: #000000;
+    --color-lime: #B7FF00;
+    --color-aqua: #00FFFF;
+    --color-card: #101010;
+    --color-card-hover: #171717;
+    --color-border: #292929;
+
+    --font-sans: Arial, ui-sans-serif, system-ui, sans-serif;
+}
+
+/* =====================================================
+   ОСНОВНЫЕ СТИЛИ СТРАНИЦЫ
+===================================================== */
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    background: #000000;
+    color: #00FA9A;
+    font-family: Arial, sans-serif;
+}
+
+/* =====================================================
+   ВЫДЕЛЕНИЕ ТЕКСТА
+   Лаймовый фон и чёрный текст
+===================================================== */
+
+::selection {
+    background: #B7FF00;
+    color: #000000;
+}
+
+/* =====================================================
+   НЕОНОВОЕ СВЕЧЕНИЕ
+===================================================== */
+
+.lime-glow {
+    box-shadow: 0 0 25px rgba(183, 255, 0, 0.15);
+}
+
+.aqua-glow {
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.15);
+}
+
+.text-glow {
+    text-shadow: 0 0 18px rgba(183, 255, 0, 0.35);
+}
+
+/* =====================================================
+   КНОПКИ
+===================================================== */
+
+.btn-lime {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 13px 24px;
+    border-radius: 10px;
+    background: #B7FF00;
+    color: #000000;
+    font-weight: 800;
+    transition: 0.25s ease;
+}
+
+.btn-lime:hover {
+    background: #D0FF55;
+    box-shadow: 0 0 25px rgba(183, 255, 0, 0.3);
+    transform: translateY(-2px);
+}
+
+.btn-aqua {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 13px 24px;
+    border: 1px solid #00FFFF;
+    border-radius: 10px;
+    color: #00FFFF;
+    font-weight: 700;
+    transition: 0.25s ease;
+}
+
+.btn-aqua:hover {
+    background: #00FFFF;
+    color: #000000;
+}
+
+/* =====================================================
+   КАРТОЧКИ ИГРОВЫХ ЗОН
+===================================================== */
+
+.zone-card {
+    background: #101010;
+    border: 1px solid #292929;
+    border-radius: 16px;
+    transition: 0.3s ease;
+}
+
+.zone-card:hover {
+    border-color: #B7FF00;
+    box-shadow: 0 0 25px rgba(183, 255, 0, 0.08);
+    transform: translateY(-5px);
+}
+
+/* =====================================================
+   ПОЛОСА ПРОКРУТКИ
+===================================================== */
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #B7FF00;
+    border-radius: 10px;
+}
+
+/* =====================================================
+   АДАПТАЦИЯ ПОД МОБИЛЬНЫЕ УСТРОЙСТВА
+===================================================== */
+
+@media (max-width: 640px) {
+    .mobile-padding {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
 }

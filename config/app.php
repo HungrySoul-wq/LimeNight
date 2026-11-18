@@ -66,7 +66,6 @@ return [
     */
 
     'timezone' => env('APP_TIMEZONE', 'Asia/Almaty'),
-
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

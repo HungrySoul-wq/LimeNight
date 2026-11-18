@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Services;
 
 use App\Models\Account;
@@ -15,40 +14,88 @@ class BookingService
     public function createBooking(User $user, array $data): Booking
     {
         return DB::transaction(function () use ($user, $data) {
-            $computer = Computer::with('zone')->findOrFail($data['computer_id']);
+            $computer = Computer::with('zone')
+                ->lockForUpdate()
+                ->findOrFail($data['computer_id']);
 
-            // 1. Проверка статуса оборудования
-            if ($computer->status === 'maintenance') {
-                abort(409, 'Компьютер находится на техническом обслуживании и недоступен для бронирования.');
+            if ($computer->status !== 'available') {
+                abort(409, 'Компьютер сейчас недоступен.');
             }
 
-            // 2. Проверка пересечения временных интервалов
-            $hasOverlap = Booking::where('computer_id', $computer->id)
+            $start = Carbon::parse($data['start_time']);
+            $now = Carbon::now();
+
+            if ($start->lt($now->copy()->addHour())) {
+                abort(422, 'Бронирование необходимо оформлять минимум за час до начала.');
+            }
+
+            if ($start->minute !== 0 || $start->second !== 0) {
+                abort(422, 'Время начала должно быть указано ровно на час.');
+            }
+
+            $package = $data['package'];
+
+            $packages = [
+                '1_hour' => [
+                    'hours' => 1,
+                    'price' => $computer->zone->price_1_hour,
+                ],
+                '3_hours' => [
+                    'hours' => 3,
+                    'price' => $computer->zone->price_3_hours,
+                ],
+                '5_hours' => [
+                    'hours' => 5,
+                    'price' => $computer->zone->price_5_hours,
+                ],
+                'night' => [
+                    'hours' => 10,
+                    'price' => $computer->zone->price_night,
+                ],
+            ];
+
+            if (!isset($packages[$package])) {
+                abort(422, 'Неизвестный пакет бронирования.');
+            }
+
+            $selected = $packages[$package];
+            $hour = (int) $start->format('G');
+
+            if ($hour < 8 || $hour > 23) {
+                abort(422, 'Бронирование доступно с 08:00 до 00:00.');
+            }
+
+            if (
+                $package === 'night'
+                && !in_array($hour, [0, 22, 23], true)
+            ) {
+                abort(422, 'Ночной пакет можно начать только в 22:00, 23:00 или 00:00.');
+            }
+
+            $end = $start->copy()->addHours($selected['hours']);
+            $totalPrice = (float) $selected['price'];
+
+            $hasOverlap = Booking::query()
+                ->where('computer_id', $computer->id)
                 ->whereIn('status', ['pending', 'active'])
-                ->where('start_time', '<', $data['end_time'])
-                ->where('end_time', '>', $data['start_time'])
+                ->where('start_time', '<', $end)
+                ->where('end_time', '>', $start)
                 ->exists();
 
             if ($hasOverlap) {
-                abort(409, 'Компьютер уже забронирован на выбранный временной интервал.');
+                abort(409, 'Компьютер уже забронирован на это время.');
             }
 
-            // 3. Расчёт стоимости (длительность в часах * тариф зоны)
-            $start = Carbon::parse($data['start_time']);
-            $end = Carbon::parse($data['end_time']);
-            $hours = $start->diffInMinutes($end) / 60;
-            $totalPrice = round($hours * $computer->zone->hourly_rate, 2);
+            $account = Account::where('user_id', $user->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-            // 4. Проверка и списание баланса аккаунта (с блокировкой строки)
-            $account = Account::where('user_id', $user->id)->lockForUpdate()->firstOrFail();
-
-            if ($account->balance < $totalPrice) {
-                abort(409, 'Недостаточно средств на игровом балансе для оформления брони.');
+            if ((float) $account->balance < $totalPrice) {
+                abort(409, 'Недостаточно средств на игровом балансе.');
             }
 
             $account->decrement('balance', $totalPrice);
 
-            // 5. Фиксация финансовой транзакции
             Payment::create([
                 'user_id' => $user->id,
                 'amount' => $totalPrice,
@@ -57,15 +104,66 @@ class BookingService
                 'status' => 'success',
             ]);
 
-            // 6. Создание записи бронирования
             return Booking::create([
                 'user_id' => $user->id,
                 'computer_id' => $computer->id,
-                'start_time' => $data['start_time'],
-                'end_time' => $data['end_time'],
+                'start_time' => $start,
+                'end_time' => $end,
                 'total_price' => $totalPrice,
                 'status' => 'active',
             ]);
-        });
+        }, 3);
+    }
+
+    public function cancelBooking(User $user, Booking $booking): Booking
+    {
+        return DB::transaction(function () use ($user, $booking) {
+            $booking = Booking::query()
+                ->lockForUpdate()
+                ->findOrFail($booking->id);
+
+            abort_unless(
+                $booking->user_id === $user->id,
+                403,
+                'Нет доступа к этому бронированию.'
+            );
+
+            abort_unless(
+                in_array($booking->status, ['pending', 'active'], true),
+                409,
+                'Это бронирование нельзя отменить.'
+            );
+
+            $refundPercent = Carbon::now()->lte(
+                $booking->start_time->copy()->subHour()
+            ) ? 1.0 : 0.5;
+
+            $refundAmount = round(
+                (float) $booking->total_price * $refundPercent,
+                2
+            );
+
+            $account = Account::where('user_id', $user->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $account->increment('balance', $refundAmount);
+
+            Payment::create([
+                'user_id' => $user->id,
+                'amount' => $refundAmount,
+                'type' => 'booking_refund',
+                'payment_method' => 'balance',
+                'status' => 'success',
+            ]);
+
+            $booking->update([
+                'status' => 'cancelled',
+            ]);
+
+            $booking->setAttribute('refund_amount', $refundAmount);
+
+            return $booking;
+        }, 3);
     }
 }

@@ -13,9 +13,11 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::get('/zones', [ZoneController::class, 'index']);
+Route::get('/zones/{zone}', [ZoneController::class, 'show']);
 Route::get('/computers', [ComputerController::class, 'index']);
 Route::get('/computers/{computer}', [ComputerController::class, 'show']);
 Route::get('/games', [GameController::class, 'index']);
+Route::get('/games/{game}', [GameController::class, 'show']);
 
 // Защищенные маршруты (требуют Bearer-токен Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
@@ -28,8 +30,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Административные маршруты (проверка роли через middleware 'admin')
     Route::middleware('admin')->group(function () {
-        Route::apiResource('zones', ZoneController::class)->except(['index']);
-        Route::apiResource('computers', ComputerController::class)->except(['index', 'show']);
-        Route::apiResource('games', GameController::class)->except(['index']);
-    });
+    Route::apiResource('zones', ZoneController::class)->except(['index', 'show']);        Route::apiResource('computers', ComputerController::class)->except(['index', 'show']);
+    Route::apiResource('games', GameController::class)->except(['index', 'show']);    });
 });

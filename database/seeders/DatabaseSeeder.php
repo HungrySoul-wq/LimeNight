@@ -15,22 +15,22 @@ class DatabaseSeeder extends Seeder
     {
         DB::transaction(function () {
 
-            // Создаём аккаунты для пользователей, у которых их ещё нет
+            // Создаём аккаунты для существующих пользователей
             User::query()->each(function (User $user) {
-            Account::firstOrCreate(
-                ['user_id' => $user->id],
-                [
-                    'balance' => 0,
-                    'tier' => 'standard',
-                    'status' => 'active',
-                ]
+                Account::firstOrCreate(
+                    ['user_id' => $user->id],
+                    [
+                        'balance' => 0,
+                        'tier' => 'standard',
+                        'status' => 'active',
+                    ]
                 );
             });
+
             // Общий зал
-            Zone::updateOrCreate(
-                ['id' => 1],
+            $general = Zone::updateOrCreate(
+                ['name' => 'Общий зал'],
                 [
-                    'name' => 'Общий зал',
                     'hourly_rate' => 500,
                     'price_1_hour' => 500,
                     'price_3_hours' => 1300,
@@ -41,10 +41,9 @@ class DatabaseSeeder extends Seeder
             );
 
             // VIP
-            Zone::updateOrCreate(
-                ['id' => 2],
+            $vip = Zone::updateOrCreate(
+                ['name' => 'VIP'],
                 [
-                    'name' => 'VIP',
                     'hourly_rate' => 750,
                     'price_1_hour' => 750,
                     'price_3_hours' => 1950,
@@ -55,7 +54,7 @@ class DatabaseSeeder extends Seeder
             );
 
             // Bootcamp
-            $bootcamp = Zone::firstOrCreate(
+            $bootcamp = Zone::updateOrCreate(
                 ['name' => 'Bootcamp'],
                 [
                     'hourly_rate' => 2000,
@@ -67,23 +66,13 @@ class DatabaseSeeder extends Seeder
                 ]
             );
 
-            // Перенастраиваем существующий тестовый компьютер
-            Computer::findOrFail(1)->update([
-                'zone_id' => 1,
-                'pc_number' => 48,
-                'ip_address' => null,
-                'status' => 'available',
-                'specs' => null,
-            ]);
-
             // Количество компьютеров в каждой зоне
             $computerCounts = [
-                1 => 48,
-                2 => 10,
+                $general->id => 48,
+                $vip->id => 10,
                 $bootcamp->id => 5,
             ];
 
-            // Создаём недостающие компьютеры
             foreach ($computerCounts as $zoneId => $count) {
                 for ($number = 1; $number <= $count; $number++) {
                     Computer::firstOrCreate(
